@@ -8,191 +8,115 @@
 from scipy.integrate import odeint
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-def main():
+# set up a dictionary of parameters
+params = {
 
-        # set up a dictionary of parameters
-        params = {
+        'V_0' : -70e-3, # initial conditions
+        't_max' : 3e-1, 
+        't_step' : 1e-3,
+        'clamped_state' : 9000, #9000=none, 0=voltage, 3=pip2
 
-                'V_0' : -70e-3, # initial conditions
-                't_max' : 3e0, 
-                't_step' : 1e-2,
-                'clamped_state' : 0, #False, 0=voltage, 3=pip2
+        'oxoM_EX_0' : 0e1,      # initial state
+        'PIP2_M_0' : 5e3,    
+        'KCNQ_M_0' : 4.0,     
+        'KCNQ_PIP2_M_0' : 0.0,   
+        'RLG_GDP_M_0' : 0.0,   
+        'RG_GDP_M_0' : 0.0,   
+        'DAG_M_0' : 2.0e3,
+        'Ga_GTP_M_0' : 0.0,   
+        'G_GDP_M_0' : 40.0,  
+        'RG_beta_M_0' : 0.0,   
+        'PI4P_M_0' : 4.0e3,
+        'R_M_0' : 1.0,   
+        'PI_M_0' : 1.4e5,      
+        'Ga_GDP_M_0' : 0.0,   
+        'Ga_GTP_PLC_M_0' : 0.0,   
+        'RL_M_0' : 0.0,   
+        'Ga_GDP_PLC_M_0' : 0.0,   
+        'RLG_beta_M_0' : 0.0,    
+        'G_beta_M_0' : 0.0,    
+        'PLC_M_0' : 10.0,
+        'IP3_C_0' : 0.16,
+        'm_0' : 0,#0.058,
+        'h_0' : 1,#0.57,
+        'n_0' : 0,#0.33,  
 
-                'oxoM_EX_0' : 0e1,
-                'PIP2_M_0' : 5e3,    
-                'KCNQ_M_0' : 0.0,     # initial state
-                'KCNQ_PIP2_M_0' : 0.0,   
-                'RLG_GDP_M_0' : 0.0,   
-                'RG_GDP_M_0' : 0.0,   
-                'DAG_M_0' : 2.0e3,
-                'Ga_GTP_M_0' : 0.0,   
-                'G_GDP_M_0' : 40.0,  
-                'RG_beta_M_0' : 0.0,   
-                'PI4P_M_0' : 4.0e3,
-                'R_M_0' : 1.0,   
-                'PI_M_0' : 1.4e5,      
-                'Ga_GDP_M_0' : 0.0,   
-                'Ga_GTP_PLC_M_0' : 0.0,   
-                'RL_M_0' : 0.0,   
-                'Ga_GDP_PLC_M_0' : 0.0,   
-                'RLG_beta_M_0' : 0.0,    
-                'G_beta_M_0' : 0.0,    
-                'PLC_M_0' : 10.0,
-                'IP3_C_0' : 0.16,
-                'h_0' : 0.57,
-                'm_0' : 0.058,
-                'n_0' : 0.33,  
+        'I_ext'  : 1.0e-9,   # injected current
+        'I_start' : 0,
+        'I_end' : 0.03,
 
-                'I_ext'  : 1.0e-9,   # injected current
-                'I_start' : 0,
-                'I_end' : 0.03,
+        'leak_E' : -7.0e-2,     # channel paramters
+        'leak_G' : 3.0e-09,
+        'Na_E'          : 5.0e-2,
+        'Na_G'          : 1.0e-6,
+        'k_E'           : -9.0e-2,
+        'k_G'           : 2.0e-7, #2.0/3.5*1e-8
+        'KCNQ_E' : -9.0e-2,
+        'KCNQ_G': 2.0e-8,       #compare to k_G
+        'k_Na_act'      : 3.0e+0,
+        'A_alpha_m' : 2.0e+5,
+        'B_alpha_m' : -4.0e-2,
+        'C_alpha_m' : 1.0e-3,
+        'A_beta_m'  : 6.0e+4,
+        'B_beta_m'  : -4.9e-2,
+        'C_beta_m'  : 2.0e-2,
+        'l_Na_'     : 1.0e+0,
+        'A_alpha_h' : 8.0e+4,
+        'B_alpha_h' : -4.0e-2,
+        'C_alpha_h' : 1.0e-3,
+        'A_beta_h'  : 4.0e+2,
+        'B_beta_h'  : -3.6e-2,
+        'C_beta_h'  : 2.0e-3,
+        'k_K'       : 4.0e+0,
+        'A_alpha_n' : 2.0e+4,
+        'B_alpha_n' : -3.1e-2,
+        'C_alpha_n' : 8.0e-4,
+        'A_beta_n'  : 5.0e+3,
+        'B_beta_n'  : -2.8e-2,
+        'C_beta_n'  : 4.0e-4,
+        'z' : 1.866,
+        'F' : 96480,
+        'R' : 8314,
+        'T' : 300,
+        'theta' : 10000,
+        'kg' : 0.02,
+        'kv0' : 4.512,
+        'kp0' : 0.75,
+        'C_M'           : 3.0e-11,
 
-                'leak_E' : -7.0e-2,     # channel paramters
-                'leak_G' : 3.0e-09,
-                'Na_E'          : 5.0e-2,
-                'Na_G'          : 1.0e-6,
-                'k_E'           : -9.0e-2,
-                'k_G'           : 2.0/3.5*1e-8, #2.0e-7
-                'KCNQ_E' : -9.0e-2,
-                'KCNQ_G': 2.0e-8,
-                'k_Na_act'      : 3.0e+0,
-                'A_alpha_m' : 2.0e+5,
-                'B_alpha_m' : -4.0e-2,
-                'C_alpha_m' : 1.0e-3,
-                'A_beta_m'  : 6.0e+4,
-                'B_beta_m'  : -4.9e-2,
-                'C_beta_m'  : 2.0e-2,
-                'l_Na_'    : 1.0e+0,
-                'A_alpha_h' : 8.0e+4,
-                'B_alpha_h' : -4.0e-2,
-                'C_alpha_h' : 1.0e-3,
-                'A_beta_h'  : 4.0e+2,
-                'B_beta_h'  : -3.6e-2,
-                'C_beta_h'  : 2.0e-3,
-                'k_K'           : 4.0e+0,
-                'A_alpha_n' : 2.0e+4,
-                'B_alpha_n' : -3.1e-2,
-                'C_alpha_n' : 8.0e-4,
-                'A_beta_n'  : 5.0e+3,
-                'B_beta_n'  : -2.8e-2,
-                'C_beta_n'  : 4.0e-4,
-                'z' : 1.866,
-                'F' : 96480,
-                'R' : 8314,
-                'T' : 300,
-                'theta' : 10000,
-                'kg' : 0.02,
-                'kv0' : 4.512,
-                'kp0' : 0.75,
-                'C_M'           : 3.0e-11,
-
-                'Kr_PLCassoc' : 0.0,         #intracellular kinetic paramters
-                'Kf_NE_RLG' : 0.65,  
-                'Kr_PI4K_4Pase' : 0.006, 
-                'K_plc' : 0.1,   
-                'Kf_GTPase_Ga' : 0.026, 
-                'KrG2' : 0.68,  
-                'Kf_reconstitution' : 1.0,   
-                'Kf_PLCdiss' : 0.71,  
-                'Kf_PI4K_4Pase' : 2.6E-4,
-                'KfG2' : 0.0026666,     
-                'Kf_NE_G' : 1.5E-5,
-                'PLC_basal' : 0.0025,
-                'Kf_NE_RG' : 1.5E-5,
-                'speed_PIP2_KCNQ' : 0.05,  
-                'KD_PH_PIP2' : 2.0,   
-                'K_IP3ase' : 0.08,  
-                'PLC_efficiency_PIP' : 0.14,  
-                'KD_PH_IP3' : 0.1,    
-                'Kr_NE_G' : 0.0,   
-                'Kf_PLCassoc' : 1.0,   
-                'Hill_binding' : 1.0,   
-                'Kf_DAGPase' : 0.02,  
-                'speed_PH_PIP2' : 1.0,    
-                'alpha' : 100.0,  
-                'Kr_PLCdiss' : 0.0,   
-                'KA_PIP2_KCNQ' : 2000.0, 
-                'Kr_NE_RG' : 0.0,    
-                'KL1' : 2.0,    
-                'KrL1' : 5.555555555555555,      
-                'speed_PH_IP3' : 10.0,
+        'Kr_PLCassoc' : 0.0,         #intracellular kinetic paramters
+        'Kf_NE_RLG' : 0.65,  
+        'Kr_PI4K_4Pase' : 0.006, 
+        'K_plc' : 0.1,   
+        'Kf_GTPase_Ga' : 0.026, 
+        'KrG2' : 0.68,  
+        'Kf_reconstitution' : 1.0,   
+        'Kf_PLCdiss' : 0.71,  
+        'Kf_PI4K_4Pase' : 2.6E-4,
+        'KfG2' : 0.0026666,     
+        'Kf_NE_G' : 1.5E-5,
+        'PLC_basal' : 0.0025,
+        'Kf_NE_RG' : 1.5E-5,
+        'speed_PIP2_KCNQ' : 0.05,  
+        'KD_PH_PIP2' : 2.0,   
+        'K_IP3ase' : 0.08,  
+        'PLC_efficiency_PIP' : 0.14,  
+        'KD_PH_IP3' : 0.1,    
+        'Kr_NE_G' : 0.0,   
+        'Kf_PLCassoc' : 1.0,   
+        'Hill_binding' : 1.0,   
+        'Kf_DAGPase' : 0.02,  
+        'speed_PH_PIP2' : 1.0,    
+        'alpha' : 100.0,  
+        'Kr_PLCdiss' : 0.0,   
+        'KA_PIP2_KCNQ' : 2000.0, 
+        'Kr_NE_RG' : 0.0,    
+        'KL1' : 2.0,    
+        'KrL1' : 5.555555555555555,      
+        'speed_PH_IP3' : 10.0,
 }
-
-        # set initial states and time vector
-        state0 = [
-                params['V_0'],
-                params['KCNQ_M_0'],
-                params['KCNQ_PIP2_M_0'],
-                params['PIP2_M_0'],
-                params['RLG_GDP_M_0'],
-                params['RG_GDP_M_0'],
-                params['RG_beta_M_0'],
-                params['RLG_beta_M_0'],
-                params['R_M_0'],
-                params['RL_M_0'],
-                params['Ga_GTP_M_0'],
-                params['G_GDP_M_0'],
-                params['Ga_GDP_M_0'],
-                params['Ga_GTP_PLC_M_0'],
-                params['Ga_GDP_PLC_M_0'],
-                params['G_beta_M_0'],
-                params['oxoM_EX_0'],
-                params['PLC_M_0'],
-                params['IP3_C_0'],
-                params['DAG_M_0'],
-                params['PI4P_M_0'],
-                params['PI_M_0'],
-                params['m_0'],
-                params['h_0'],
-                params['n_0']
-        ]
-
-        t = np.arange(0, params['t_max'],params['t_step'])
-
-        # run simulation
-        # state = odeint(neuron, state0, t, args=(params,), False, False)
-        # voltage_values=[-120*1e-3,-110*1e-3,-100*1e-3,-90*1e-3,-80*1e-3,-70*1e-3,-60*1e-3,
-                # -50*1e-3,-40*1e-3,-30*1e-3,-20*1e-3,-10*1e-3,0*1e-3]
-        voltage_values=np.linspace(-120e-3,80e-3,20)
-        print voltage_values
-        conductance_voltage_experiment(state0,t,params,voltage_values)
-
-        # plot the results
-        # fig=plt.figure(figsize=(8,12))
-        # plt.subplot(2,2,1)
-        # plt.plot(t, state[:,0])
-        # plt.title('membrane potential V (mV)')
-        # plt.subplot(2,2,2)
-        # plt.plot(t, state[:,-3])
-        # plt.title('Na activation (m) and inactivation (h)')
-        # plt.subplot(2,2,2)
-        # plt.plot(t, state[:,-2])
-        # #plt.title('Na inactivation (h)')
-        # plt.subplot(2,2,3)
-        # plt.plot(t, state[:,-1])
-        # plt.title('K channel activation (n)')
-        # #quick recalculation of KCNQ_open
-        # KCNQ_open_recalc=[]
-        # kv0=params['kv0']
-        # z=params['z']
-        # F=params['F']
-        # R=params['R']
-        # T=params['T']
-        # kp0=params['kp0']
-        # kg=params['kg']
-        # theta=params['theta']
-        # for i in range(len(t)):
-        #         kv=kv0*np.exp(z*F*(state[:,0][i]*1e3)/(R*T))
-        #         kp=kp0*state[:,2][i]
-        #         PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
-        #         PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
-        #         KCNQ_open_recalc.append(PP0/PP0_max)
-        # plt.subplot(2,2,4)
-        # plt.plot(t, KCNQ_open_recalc)
-        # plt.title('KCNQ channel activation')
-        # plt.show()
-        # fig.savefig('states0,22-24,kcqn,oxom=0')
 
 def neuron(state, t, params):
 
@@ -419,76 +343,12 @@ def neuron(state, t, params):
         
         #set the derivative of the state numbered "clamped_state" to zero
         if params['clamped_state'] != 9000:
-                # print state_new
                 state_new.insert(params['clamped_state'],0) 
                 state_new.pop(params['clamped_state'] + 1)
-                # print state_new
 
         return state_new
 
-
-def conductance_voltage_experiment(state0,t,params,value_list):
-
-        kv0=params['kv0']
-        z=params['z']
-        F=params['F']
-        R=params['R']
-        T=params['T']
-        kp0=params['kp0']
-        kg=params['kg']
-        theta=params['theta']
-        y_values=[]
-
-        for i in range(len(value_list)):
-                params['V_0'] = value_list[i]
-                state0 = [
-                        params['V_0'],
-                        params['KCNQ_M_0'],
-                        params['KCNQ_PIP2_M_0'],
-                        params['PIP2_M_0'],
-                        params['RLG_GDP_M_0'],
-                        params['RG_GDP_M_0'],
-                        params['RG_beta_M_0'],
-                        params['RLG_beta_M_0'],
-                        params['R_M_0'],
-                        params['RL_M_0'],
-                        params['Ga_GTP_M_0'],
-                        params['G_GDP_M_0'],
-                        params['Ga_GDP_M_0'],
-                        params['Ga_GTP_PLC_M_0'],
-                        params['Ga_GDP_PLC_M_0'],
-                        params['G_beta_M_0'],
-                        params['oxoM_EX_0'],
-                        params['PLC_M_0'],
-                        params['IP3_C_0'],
-                        params['DAG_M_0'],
-                        params['PI4P_M_0'],
-                        params['PI_M_0'],
-                        params['m_0'],
-                        params['h_0'],
-                        params['n_0']
-                ]
-                state = odeint(neuron, state0, t, args=(params,))
-                kv=kv0*np.exp(z*F*(state[:,0][-1]*1e3)/(R*T))
-                kp=kp0*state[:,2][-1]
-                PP0=((kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg))
-                PP0_max=((kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg))
-                KCNQ_open_recalc = PP0/PP0_max
-                y_values.append(KCNQ_open_recalc) # measure the final conductance value, divided by its maximum value 
-                # print kv
-                # print kp
-                # print KCNQ_open_recalc
-
-        fig=plt.figure(figsize=(8,12))
-        plt.subplot(1,1,1)
-        plt.plot(value_list,y_values)
-        plt.xlabel('Membrane Voltage (V)')
-        plt.ylabel('G/G_max of the KCNQ Channel')
-        plt.show()
-        # plt.title('K channel activation (n)')
-        # fig.savefig('Conductance-Voltage Relationship for KCNQ2/3 Channel.png')
-
-def conductance_pip2_experiment(state0,t,params,value_list):
+def calibration_experiment(state0,t,params,value_list1,value_list2):
 
         kv0=params['kv0']
         z=params['z']
@@ -498,58 +358,137 @@ def conductance_pip2_experiment(state0,t,params,value_list):
         kp0=params['kp0']
         kg=params['kg']
         theta=params['theta']
-        y_values=[]
+        params['clamped_state'] = 0
 
-        for i in range(len(value_list)):
-                params['PIP2_M_0'] = value_list[i]
-                state0 = [
-                        params['V_0'],
-                        params['KCNQ_M_0'],
-                        params['KCNQ_PIP2_M_0'],
-                        params['PIP2_M_0'],
-                        params['RLG_GDP_M_0'],
-                        params['RG_GDP_M_0'],
-                        params['RG_beta_M_0'],
-                        params['RLG_beta_M_0'],
-                        params['R_M_0'],
-                        params['RL_M_0'],
-                        params['Ga_GTP_M_0'],
-                        params['G_GDP_M_0'],
-                        params['Ga_GDP_M_0'],
-                        params['Ga_GTP_PLC_M_0'],
-                        params['Ga_GDP_PLC_M_0'],
-                        params['G_beta_M_0'],
-                        params['oxoM_EX_0'],
-                        params['PLC_M_0'],
-                        params['IP3_C_0'],
-                        params['DAG_M_0'],
-                        params['PI4P_M_0'],
-                        params['PI_M_0'],
-                        params['m_0'],
-                        params['h_0'],
-                        params['n_0']
-                ]
-                state = odeint(neuron, state0, t, args=(params,))
-                kv=kv0*np.exp(z*F*(state[:,0][-1]*1e3)/(R*T))
-                kp=kp0*state[:,2][-1]
-                PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
-                PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
-                KCNQ_open_recalc = PP0/PP0_max
-                y_values.append(KCNQ_open_recalc) # measure the final conductance value, divided by its maximum value 
-                # print kv
-                # print kp
-                # print KCNQ_open_recalc
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel('Membrane Voltage (mV)')
+        ax.set_ylabel('log_10 PIP2_M')
+        ax.set_zlabel('KCNQ channel open')
 
-        fig=plt.figure(figsize=(8,12))
-        plt.subplot(1,1,1)
-        plt.plot(value_list,y_values)
-        plt.xlabel('Membrane Voltage (V)')
-        plt.ylabel('G/G_max of the KCNQ Channel')
+        for i in range(len(value_list1)):
+                params['V_0'] = value_list1[i]
+                xs = value_list1[i]
+                for j in range(len(value_list2)):
+                        params['PIP2_M_0'] = value_list2[j]
+                        ys = np.log10(value_list2[j])
+                        state0 = [
+                                params['V_0'],
+                                params['KCNQ_M_0'],
+                                params['KCNQ_PIP2_M_0'],
+                                params['PIP2_M_0'],
+                                params['RLG_GDP_M_0'],
+                                params['RG_GDP_M_0'],
+                                params['RG_beta_M_0'],
+                                params['RLG_beta_M_0'],
+                                params['R_M_0'],
+                                params['RL_M_0'],
+                                params['Ga_GTP_M_0'],
+                                params['G_GDP_M_0'],
+                                params['Ga_GDP_M_0'],
+                                params['Ga_GTP_PLC_M_0'],
+                                params['Ga_GDP_PLC_M_0'],
+                                params['G_beta_M_0'],
+                                params['oxoM_EX_0'],
+                                params['PLC_M_0'],
+                                params['IP3_C_0'],
+                                params['DAG_M_0'],
+                                params['PI4P_M_0'],
+                                params['PI_M_0'],
+                                params['m_0'],
+                                params['h_0'],
+                                params['n_0']
+                        ]
+                        state = odeint(neuron, state0, t, args=(params,))
+                        kv=kv0*np.exp(z*F*(state[:,0][-1]*1e3)/(R*T))
+                        kp=kp0*state[:,2][-1]
+                        zs = (((kg+kv*kg+kp*kg+theta*kv*kp*kg) / 
+                                (1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg))
+                                / ((kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)))
+                        ax.scatter(xs,ys,zs)
         plt.show()
+
+def main(params):
+
+        # set initial states and time vector
+        state0 = [
+                params['V_0'],
+                params['KCNQ_M_0'],
+                params['KCNQ_PIP2_M_0'],
+                params['PIP2_M_0'],
+                params['RLG_GDP_M_0'],
+                params['RG_GDP_M_0'],
+                params['RG_beta_M_0'],
+                params['RLG_beta_M_0'],
+                params['R_M_0'],
+                params['RL_M_0'],
+                params['Ga_GTP_M_0'],
+                params['G_GDP_M_0'],
+                params['Ga_GDP_M_0'],
+                params['Ga_GTP_PLC_M_0'],
+                params['Ga_GDP_PLC_M_0'],
+                params['G_beta_M_0'],
+                params['oxoM_EX_0'],
+                params['PLC_M_0'],
+                params['IP3_C_0'],
+                params['DAG_M_0'],
+                params['PI4P_M_0'],
+                params['PI_M_0'],
+                params['m_0'],
+                params['h_0'],
+                params['n_0']
+        ]
+
+        t = np.arange(0, params['t_max'],params['t_step'])
+
+        # run simulation
+        # state = odeint(neuron, state0, t, args=(params,))
+        voltage_values = np.linspace(-120e-3,40e-3,30)
+        pip2_values = np.logspace(-3, 5, 30, base=10.0)
+        calibration_experiment(state0,t,params,voltage_values,pip2_values)
+
+        # plot the results
+        # fig=plt.figure(figsize=(8,12))
+        # plt.subplot(2,2,1)
+        # plt.plot(t, state[:,0])
+        # plt.title('membrane potential V (mV)')
+        # plt.subplot(2,2,2)
+        # plt.plot(t, state[:,-3])
+        # plt.title('Na activation (m) and inactivation (h)')
+        # plt.subplot(2,2,2)
+        # plt.plot(t, state[:,-2])
+        # #plt.title('Na inactivation (h)')
+        # plt.subplot(2,2,3)
+        # plt.plot(t, state[:,-1])
         # plt.title('K channel activation (n)')
-        # fig.savefig('Conductance-Voltage Relationship for KCNQ2/3 Channel.png')
 
+        # plt.subplot(2,2,2)
+        # plt.plot(t, state[:,3])
+        # plt.title('PIP2_m)')
+        # plt.subplot(2,2,3)
+        # plt.plot(t, state[:,2])
+        # plt.title('KCNQ_PIP2_M')
 
+        # #quick recalculation of KCNQ_open
+        # KCNQ_open_recalc=[]
+        # kv0=params['kv0']
+        # z=params['z']
+        # F=params['F']
+        # R=params['R']
+        # T=params['T']
+        # kp0=params['kp0']
+        # kg=params['kg']
+        # theta=params['theta']
+        # for i in range(len(t)):
+        #         kv=kv0*np.exp(z*F*(state[:,0][i]*1e3)/(R*T))
+        #         kp=kp0*state[:,2][i]
+        #         PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
+        #         PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
+        #         KCNQ_open_recalc.append(PP0/PP0_max)
+        # plt.subplot(2,2,4)
+        # plt.plot(t, KCNQ_open_recalc)
+        # plt.title('KCNQ channel activation')
+        # plt.show()
+        # fig.savefig('states0,22-24,kcqn,oxom=0')
 
-
-main()
+main(params)
