@@ -14,11 +14,11 @@ from mpl_toolkits.mplot3d import Axes3D
 params = {
 
         'V_0' : -70e-3, # initial conditions
-        't_max' : 3e-1, 
-        't_step' : 1e-3,
+        't_max' : 6e3, 
+        't_step' : 1e-2,
         'clamped_state' : 9000, #9000=none, 0=voltage, 3=pip2
 
-        'oxoM_EX_0' : 0e1,      # initial state
+        'oxoM_EX_0' : 0e5,      # initial state
         'PIP2_M_0' : 5e3,    
         'KCNQ_M_0' : 4.0,     
         'KCNQ_PIP2_M_0' : 0.0,   
@@ -43,7 +43,7 @@ params = {
         'h_0' : 1,#0.57,
         'n_0' : 0,#0.33,  
 
-        'I_ext'  : 1.0e-9,   # injected current
+        'I_ext'  : 0.0e-9,   # injected current
         'I_start' : 0,
         'I_end' : 0.03,
 
@@ -116,6 +116,9 @@ params = {
         'KL1' : 2.0,    
         'KrL1' : 5.555555555555555,      
         'speed_PH_IP3' : 10.0,
+        'Kf_PIP5K' : 0.02,
+        'Kr_PIP5K' : 0.014,
+
 }
 
 def neuron(state, t, params):
@@ -179,6 +182,8 @@ def neuron(state, t, params):
         speed_PH_PIP2 = params['speed_PH_PIP2']
         speed_PIP2_KCNQ = params['speed_PIP2_KCNQ']
         speed_PH_IP3 = params['speed_PH_IP3']
+        Kf_PIP5K = params['Kf_PIP5K']
+        Kr_PIP5K = params['Kr_PIP5K']
         C_M = params['C_M']
         kv0=params['kv0']
         z=params['z']
@@ -255,6 +260,7 @@ def neuron(state, t, params):
         J_G1beta = Kf_G1beta * G_beta_M * R_M - Kr_G1beta * RG_beta_M
         J_DAGPase = Kf_DAGPase * DAG_M
         J_GTPase_Ga = Kf_GTPase_Ga * Ga_GTP_M
+        J_PIP4K_5Pase = Kf_PIP5K * PI4P_M - Kr_PIP5K * PIP2_M
 
         # Na Current
         alpha_act = params['A_alpha_m'] * (V-params['B_alpha_m']) / (1.0 - np.exp((params['B_alpha_m']-V) / params['C_alpha_m']))
@@ -289,7 +295,7 @@ def neuron(state, t, params):
         dVdt = (I_leak + I_K + I_Na + I_ext + I_KCNQ) / C_M
         dKCNQ_Mdt = - J_PIP2bindKCNQ
         dKCNQ_PIP2_Mdt = J_PIP2bindKCNQ
-        dPIP2_Mdt = - J_PIP2hydr - J_PIP2bindKCNQ
+        dPIP2_Mdt = J_PIP4K_5Pase - J_PIP2hydr - J_PIP2bindKCNQ
         dRLG_GDP_M = J_G2 - J_NE_RLG + J_L2
         dRG_GDP_Mdt = J_G1 - J_NE_RG - J_L2
         dRG_beta_Mdt = J_NE_RG + J_G1beta - J_L2beta
@@ -306,7 +312,7 @@ def neuron(state, t, params):
         dPLC_Mdt = J_PLCdiss - J_PLCassoc
         dIP3_Cdt = J_PIP2hydr - J_IP3Pase
         dDAG_Mdt = J_PLC_on_PI4P - J_DAGPase + J_PIP2hydr
-        dPI4P_Mdt = J_PI4K_4Pase - J_PLC_on_PI4P
+        dPI4P_Mdt = J_PI4K_4Pase - J_PLC_on_PI4P - J_PIP4K_5Pase
         dPI_Mdt = J_DAGPase - J_PI4K_4Pase
         dmdt = ( alpha_act * (1.0 - m) ) - ( beta_act * m )
         dhdt = ( alpha_inact*(1.0 - h) ) - ( beta_inact*h )
@@ -439,19 +445,19 @@ def main(params):
                 params['n_0']
         ]
 
-        t = np.arange(0, params['t_max'],params['t_step'])
-
         # run simulation
-        # state = odeint(neuron, state0, t, args=(params,))
-        voltage_values = np.linspace(-120e-3,40e-3,30)
-        pip2_values = np.logspace(-3, 5, 30, base=10.0)
-        calibration_experiment(state0,t,params,voltage_values,pip2_values)
+        t = np.arange(0, params['t_max'],params['t_step'])
+        state = odeint(neuron, state0, t, args=(params,))
+        # voltage_values = np.linspace(-120e-3,40e-3,30)
+        # pip2_values = np.logspace(-3, 5, 30, base=10.0)
+        # calibration_experiment(state0,t,params,voltage_values,pip2_values)
 
         # plot the results
-        # fig=plt.figure(figsize=(8,12))
-        # plt.subplot(2,2,1)
-        # plt.plot(t, state[:,0])
-        # plt.title('membrane potential V (mV)')
+        fig=plt.figure(figsize=(8,12))
+
+        plt.subplot(4,1,1)
+        plt.plot(t, state[:,0])
+        plt.title('membrane potential V (mV)')
         # plt.subplot(2,2,2)
         # plt.plot(t, state[:,-3])
         # plt.title('Na activation (m) and inactivation (h)')
@@ -461,34 +467,34 @@ def main(params):
         # plt.subplot(2,2,3)
         # plt.plot(t, state[:,-1])
         # plt.title('K channel activation (n)')
+        plt.subplot(4,1,2)
+        plt.plot(t, state[:,3])
+        plt.title('PIP2_M')
+        plt.subplot(4,1,3)
+        plt.plot(t, state[:,20])
+        plt.title('PI4P_M')
 
-        # plt.subplot(2,2,2)
-        # plt.plot(t, state[:,3])
-        # plt.title('PIP2_m)')
-        # plt.subplot(2,2,3)
-        # plt.plot(t, state[:,2])
-        # plt.title('KCNQ_PIP2_M')
+        #recalculation of KCNQ_open
+        KCNQ_open_recalc=[]
+        kv0=params['kv0']
+        z=params['z']
+        F=params['F']
+        R=params['R']
+        T=params['T']
+        kp0=params['kp0']
+        kg=params['kg']
+        theta=params['theta']
+        for i in range(len(t)):
+                kv=kv0*np.exp(z*F*(state[:,0][i]*1e3)/(R*T))
+                kp=kp0*state[:,2][i]
+                PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
+                PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
+                KCNQ_open_recalc.append(PP0/PP0_max)
+        plt.subplot(4,1,4)
+        plt.plot(t, KCNQ_open_recalc)
+        plt.title('KCNQ channel activation')
 
-        # #quick recalculation of KCNQ_open
-        # KCNQ_open_recalc=[]
-        # kv0=params['kv0']
-        # z=params['z']
-        # F=params['F']
-        # R=params['R']
-        # T=params['T']
-        # kp0=params['kp0']
-        # kg=params['kg']
-        # theta=params['theta']
-        # for i in range(len(t)):
-        #         kv=kv0*np.exp(z*F*(state[:,0][i]*1e3)/(R*T))
-        #         kp=kp0*state[:,2][i]
-        #         PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
-        #         PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
-        #         KCNQ_open_recalc.append(PP0/PP0_max)
-        # plt.subplot(2,2,4)
-        # plt.plot(t, KCNQ_open_recalc)
-        # plt.title('KCNQ channel activation')
-        # plt.show()
-        # fig.savefig('states0,22-24,kcqn,oxom=0')
+        plt.show()
+        # fig.savefig('name')
 
 main(params)
