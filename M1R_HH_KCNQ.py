@@ -14,23 +14,23 @@ from mpl_toolkits.mplot3d import Axes3D
 params = {
 
         'V_0' : -70e-3, # initial conditions
-        't_max' : 1e5, 
+        't_max' : 1e3, 
         't_step' : 1e-1,
         'clamped_state' : 9000, #9000=none, 0=voltage, 3=pip2
 
-        'oxoM_EX_0' : 1e3,      # initial state
-        'PIP2_M_0' : 5e3,    
+        'oxoM_EX_0' : 0e3,      # initial state
+        'PIP2_M_0' : 1e2,    
         'KCNQ_M_0' : 4.0,     
         'KCNQ_PIP2_M_0' : 0.0,   
         'RLG_GDP_M_0' : 0.0,   
         'RG_GDP_M_0' : 0.0,   
-        'DAG_M_0' : 2.0e3,
+        'DAG_M_0' : 1e2, #2.0e3,
         'Ga_GTP_M_0' : 0.0,   
         'G_GDP_M_0' : 40.0,  
         'RG_beta_M_0' : 0.0,   
-        'PI4P_M_0' : 4.0e3,
+        'PI4P_M_0' : 1e2, #4.0e3,
         'R_M_0' : 1.0,   
-        'PI_M_0' : 1.4e5,      
+        'PI_M_0' : 1e4, #1.4e5,      
         'Ga_GDP_M_0' : 0.0,   
         'Ga_GTP_PLC_M_0' : 0.0,   
         'RL_M_0' : 0.0,   
@@ -86,28 +86,29 @@ params = {
         'kp0' : 0.75,
         'C_M'           : 3.0e-11,
 
+        'oxoM_EX_0' : 0e1,
         'Kr_PLCassoc' : 0.0,         #intracellular kinetic paramters
         'Kf_NE_RLG' : 0.65,  
-        'Kr_PI4K_4Pase' : 0.006, 
-        'K_plc' : 0.1,   
+        'Kr_PI4K_4Pase' : 0.006, #0.006, #temporal sensitivity
+        'K_plc' : 0.1e1, #0.1, #temporal sensitivity  
         'Kf_GTPase_Ga' : 0.026, 
         'KrG2' : 0.68,  
         'Kf_reconstitution' : 1.0,   
         'Kf_PLCdiss' : 0.71,  
-        'Kf_PI4K_4Pase' : 2.6E-4,
-        'KfG2' : 0.0026666,     
-        'Kf_NE_G' : 1.5E-5,
-        'PLC_basal' : 0.0025,
+        'Kf_PI4K_4Pase' : 2.6e-4, #2.6E-4, #temporal sensitivity
+        'KfG2' : 0.0026666,    #temporal sensitivity 
+        'Kf_NE_G' : 1.5E-5, #temporal sensitivity
+        'PLC_basal' : 0.0025e-1, #temporal sensitivity
         'Kf_NE_RG' : 1.5E-5,
-        'speed_PIP2_KCNQ' : 0.05,  
+        'speed_PIP2_KCNQ' : 0.05, 
         'KD_PH_PIP2' : 2.0,   
         'K_IP3ase' : 0.08,  
-        'PLC_efficiency_PIP' : 0.14,  
+        'PLC_efficiency_PIP' : 0.14e2,  #temporal sensitivity
         'KD_PH_IP3' : 0.1,    
         'Kr_NE_G' : 0.0,   
         'Kf_PLCassoc' : 1.0,   
         'Hill_binding' : 1.0,   
-        'Kf_DAGPase' : 0.0, #0.02,  
+        'Kf_DAGPase' : 0.02, #is it zero?
         'speed_PH_PIP2' : 1.0,    
         'alpha' : 100.0,  
         'Kr_PLCdiss' : 0.0,   
@@ -116,8 +117,12 @@ params = {
         'KL1' : 2.0,    
         'KrL1' : 5.555555555555555,      
         'speed_PH_IP3' : 10.0,
-        'Kf_PIP5K' : 0.02,
-        'Kr_PIP5K' : 0.014,
+        'Kf_PIP5K' : 0.02, #0.02, #temporal sensitivity
+        'Kr_PIP5K' : 0.014, #0.014, #temporal sensitivity
+        'VSP_max' : 11.3,
+        'qKT' : -40.5898,
+        'VSP_V' : -0.06,
+        'V_h' : 0.1,
 
 }
 
@@ -184,6 +189,10 @@ def neuron(state, t, params):
         speed_PH_IP3 = params['speed_PH_IP3']
         Kf_PIP5K = params['Kf_PIP5K']
         Kr_PIP5K = params['Kr_PIP5K']
+        VSP_max = params['VSP_max']
+        qKT = params['qKT']
+        VSP_V = params['VSP_V']
+        V_h = params['V_h']
         C_M = params['C_M']
         kv0=params['kv0']
         z=params['z']
@@ -237,6 +246,7 @@ def neuron(state, t, params):
         allPIP2M = PIP2_M + KCNQ_PIP2_M
         allGabg = G_GDP_M + RG_GDP_M + RLG_GDP_M
         allRG_beta = RG_GDP_M + RLG_GDP_M + RLG_beta_M + RG_beta_M
+        K_VSP = VSP_max / (1.0 + np.exp(1.5 * qKT * (VSP_V - V_h)))
 
         J_PI4K_4Pase = (Kf_PI4K_4Pase * PI_M) - (Kr_PI4K_4Pase * PI4P_M)
         J_NE_RG = (Kf_NE_RG * RG_GDP_M - (Kr_NE_RG * Ga_GTP_M) * RG_beta_M)
@@ -261,6 +271,7 @@ def neuron(state, t, params):
         J_DAGPase = Kf_DAGPase * DAG_M
         J_GTPase_Ga = Kf_GTPase_Ga * Ga_GTP_M
         J_PIP5K_5Pase = Kf_PIP5K * PI4P_M - Kr_PIP5K * PIP2_M
+        J_VSP = 0 #= K_VSP * PIP2_M - 0 * PI4P_M  #can be excluded
 
         # Na Current
         alpha_act = params['A_alpha_m'] * (V-params['B_alpha_m']) / (1.0 - np.exp((params['B_alpha_m']-V) / params['C_alpha_m']))
@@ -295,7 +306,7 @@ def neuron(state, t, params):
         dVdt = (I_leak + I_K + I_Na + I_ext + I_KCNQ) / C_M
         dKCNQ_Mdt = - J_PIP2bindKCNQ
         dKCNQ_PIP2_Mdt = J_PIP2bindKCNQ
-        dPIP2_Mdt = J_PIP5K_5Pase - J_PIP2hydr - J_PIP2bindKCNQ
+        dPIP2_Mdt = J_PIP5K_5Pase - J_PIP2hydr - J_PIP2bindKCNQ - J_VSP
         dRLG_GDP_M = J_G2 - J_NE_RLG + J_L2
         dRG_GDP_Mdt = J_G1 - J_NE_RG - J_L2
         dRG_beta_Mdt = J_NE_RG + J_G1beta - J_L2beta
@@ -308,11 +319,11 @@ def neuron(state, t, params):
         dGa_GTP_PLC_Mdt = J_PLCassoc - J_GTPase_GaP + J_NE_GaP
         dGa_GDP_PLC_Mdt = J_GTPase_GaP - J_NE_GaP - J_PLCdiss
         dG_Beta_Mdt = -J_reconstitution + J_NE_G - J_G2beta - J_G1beta
-        dOxo_M_Exdt = 0#- J_L1 - J_L2beta - J_L2
+        dOxo_M_Exdt = - J_L1 - J_L2beta - J_L2
         dPLC_Mdt = J_PLCdiss - J_PLCassoc
         dIP3_Cdt = J_PIP2hydr - J_IP3Pase
         dDAG_Mdt = J_PLC_on_PI4P - J_DAGPase + J_PIP2hydr
-        dPI4P_Mdt = J_PI4K_4Pase - J_PLC_on_PI4P - J_PIP5K_5Pase
+        dPI4P_Mdt = J_PI4K_4Pase - J_PLC_on_PI4P - J_PIP5K_5Pase - J_VSP
         dPI_Mdt = J_DAGPase - J_PI4K_4Pase
         dmdt = ( alpha_act * (1.0 - m) ) - ( beta_act * m )
         dhdt = ( alpha_inact*(1.0 - h) ) - ( beta_inact*h )
