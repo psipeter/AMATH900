@@ -14,14 +14,14 @@ from mpl_toolkits.mplot3d import Axes3D
 params = {
 
         'V_0' : -70e-3, # initial conditions
-        't_max' : 5e1, 
+        't_max' : 2e1, 
         't_step' : 1e-2,
-        'clamped_state' : 9000, #9000=none, 0=voltage, 3=pip2
-        'I_ext'  : 7.0e-10,   # injected current
-        'I_start' : 20,
-        'I_end' : 25,
+        'clamped_state' : False, #False=none, 0=voltage, 3=pip2
+        'I_ext'  : 0.0e-10,   # injected current
+        'I_start' : 01,
+        'I_end' : 20,
 
-        'oxoM_EX_0' : 1e1,      # initial state
+        'oxoM_EX_0' : 0e1,      # initial state
         'PIP2_M_0' : 1e2,    
         'KCNQ_M_0' : 4.0,     
         'KCNQ_PIP2_M_0' : 0.0,   
@@ -357,75 +357,14 @@ def neuron(state, t, params):
         ]
         
         #set the derivative of the state numbered "clamped_state" to zero
-        if params['clamped_state'] != 9000:
+        if params['clamped_state'] == 0 or params['clamped_state'] == 3:
                 state_new.insert(params['clamped_state'],0) 
                 state_new.pop(params['clamped_state'] + 1)
 
         return state_new
 
-def calibration_experiment(state0,t,params,value_list1,value_list2):
+def get_state0(params):
 
-        kv0=params['kv0']
-        z=params['z']
-        F=params['F']
-        R=params['R']
-        T=params['T']
-        kp0=params['kp0']
-        kg=params['kg']
-        theta=params['theta']
-        params['clamped_state'] = 0
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel('Membrane Voltage (mV)')
-        ax.set_ylabel('log_10 PIP2_M')
-        ax.set_zlabel('KCNQ channel open')
-
-        for i in range(len(value_list1)):
-                params['V_0'] = value_list1[i]
-                xs = value_list1[i]
-                for j in range(len(value_list2)):
-                        params['PIP2_M_0'] = value_list2[j]
-                        ys = np.log10(value_list2[j])
-                        state0 = [
-                                params['V_0'],
-                                params['KCNQ_M_0'],
-                                params['KCNQ_PIP2_M_0'],
-                                params['PIP2_M_0'],
-                                params['RLG_GDP_M_0'],
-                                params['RG_GDP_M_0'],
-                                params['RG_beta_M_0'],
-                                params['RLG_beta_M_0'],
-                                params['R_M_0'],
-                                params['RL_M_0'],
-                                params['Ga_GTP_M_0'],
-                                params['G_GDP_M_0'],
-                                params['Ga_GDP_M_0'],
-                                params['Ga_GTP_PLC_M_0'],
-                                params['Ga_GDP_PLC_M_0'],
-                                params['G_beta_M_0'],
-                                params['oxoM_EX_0'],
-                                params['PLC_M_0'],
-                                params['IP3_C_0'],
-                                params['DAG_M_0'],
-                                params['PI4P_M_0'],
-                                params['PI_M_0'],
-                                params['m_0'],
-                                params['h_0'],
-                                params['n_0']
-                        ]
-                        state = odeint(neuron, state0, t, args=(params,))
-                        kv=kv0*np.exp(z*F*(state[:,0][-1]*1e3)/(R*T))
-                        kp=kp0*state[:,2][-1]
-                        zs = (((kg+kv*kg+kp*kg+theta*kv*kp*kg) / 
-                                (1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg))
-                                / ((kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)))
-                        ax.scatter(xs,ys,zs)
-        plt.show()
-
-def main(params):
-
-        # set initial states and time vector
         state0 = [
                 params['V_0'],
                 params['KCNQ_M_0'],
@@ -453,37 +392,33 @@ def main(params):
                 params['h_0'],
                 params['n_0']
         ]
+        return state0
 
-        # run simulation
-        t = np.arange(0, params['t_max'],params['t_step'])
+def dynamics_experiment(t,params):
+
+        # initial state
+        state0 = get_state0(params)
+
+        #run the simulation
         state = odeint(neuron, state0, t, args=(params,))
-        # voltage_values = np.linspace(-120e-3,40e-3,30)
-        # pip2_values = np.logspace(-3, 5, 30, base=10.0)
-        # calibration_experiment(state0,t,params,voltage_values,pip2_values)
 
         # plot the results
         a = int((params['I_start']-1) / params['t_step'])
         b = int((params['I_end']+1) / params['t_step']) #int(params['t_max']/params['t_step']) #
-        fig=plt.figure(figsize=(8,12))
-        plt.subplot(4,1,1)
-        plt.plot(t[a:b], state[:,0][a:b])
-        plt.title('membrane potential V (mV)')
 
-        # plt.subplot(4,1,2)
-        # plt.plot(t, state[:,-3])
-        # plt.title('Na activation (m) and inactivation (h)')
-        # plt.subplot(4,1,2)
-        # plt.plot(t, state[:,-2])
-        # #plt.title('Na inactivation (h)')
-        # plt.subplot(4,1,3)
-        # plt.plot(t, state[:,-1])
-        # plt.title('K channel activation (n)')
-        plt.subplot(4,1,2)
-        plt.plot(t[a:b], state[:,3][a:b])
-        plt.title('PIP2_M')
-        plt.subplot(4,1,3)
-        plt.plot(t[a:b], state[:,2][a:b])
-        plt.title('KCNQ_PIP2_M')
+        fig=plt.figure(figsize=(8,12))
+        ax=fig.add_subplot(411)
+        ax.plot(t[a:b], state[:,0][a:b])
+        ax.set_xlabel('time')
+        ax.set_ylabel('membrane potential V (mV)')
+        ax=fig.add_subplot(412)
+        ax.plot(t[a:b], state[:,3][a:b])
+        ax.set_xlabel('time')
+        ax.set_ylabel('PIP2_M')
+        ax=fig.add_subplot(413)
+        ax.plot(t[a:b], state[:,2][a:b])
+        ax.set_xlabel('time')
+        ax.set_ylabel('KCNQ_PIP2_m')
 
         #recalculation of KCNQ_open
         KCNQ_open_recalc=[]
@@ -501,11 +436,89 @@ def main(params):
                 PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
                 PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
                 KCNQ_open_recalc.append(PP0/PP0_max)
-        plt.subplot(4,1,4)
-        plt.plot(t[a:b], KCNQ_open_recalc[a:b])
-        plt.title('KCNQ channel activation')
+        ax=fig.add_subplot(414)
+        ax.plot(t[a:b], KCNQ_open_recalc[a:b])
+        ax.set_xlabel('time')
+        ax.set_ylabel('KCNQ channel activation')
 
         plt.show()
-        # fig.savefig('name')
+
+def kcnq_v_pip2_experiment(t,params,volgate_list,pip2_list):
+
+        kv0=params['kv0']
+        z=params['z']
+        F=params['F']
+        R=params['R']
+        T=params['T']
+        kp0=params['kp0']
+        kg=params['kg']
+        theta=params['theta']
+        params['clamped_state'] = 0
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel('Membrane Voltage (mV)')
+        ax.set_ylabel('log_10 PIP2_M')
+        ax.set_zlabel('KCNQ channel open')
+
+        for i in range(len(volgate_list)):
+                params['V_0'] = volgate_list[i]
+                xs = volgate_list[i]
+                for j in range(len(pip2_list)):
+                        params['PIP2_M_0'] = pip2_list[j]
+                        ys = np.log10(pip2_list[j])
+                        state0 = get_state0(params)
+                        state = odeint(neuron, state0, t, args=(params,))
+                        kv=kv0*np.exp(z*F*(state[:,0][-1]*1e3)/(R*T))
+                        kp=kp0*state[:,2][-1]
+                        zs = (((kg+kv*kg+kp*kg+theta*kv*kp*kg) / 
+                                (1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg))
+                                / ((kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)))
+                        ax.scatter(xs,ys,zs)
+        plt.show()
+
+def oxom_concentration_experiment(t,params,oxom_list):
+
+        kv0=params['kv0']
+        z=params['z']
+        F=params['F']
+        R=params['R']
+        T=params['T']
+        kp0=params['kp0']
+        kg=params['kg']
+        theta=params['theta']
+
+        KCNQ_open_list = []
+        for i in range(len(oxom_list)):
+                params['oxoM_EX_0'] = oxom_list[i]
+                state0=get_state0(params)
+                state = odeint(neuron, state0, t, args=(params,))
+                kv=kv0*np.exp(z*F*(state[:,0][-1]*1e3)/(R*T))
+                kp=kp0*state[:,2][-1]
+                KCNQ_open_list.append((((kg+kv*kg+kp*kg+theta*kv*kp*kg) / 
+                        (1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg))
+                        / ((kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg))))
+
+        fig=plt.figure(figsize=(8,12))
+        ax=fig.add_subplot(111)
+        ax.plot(np.log10(oxom_list),KCNQ_open_list)
+        ax.set_xlabel('log_10 Oxo_M')
+        ax.set_ylabel('KCNQ channel open')
+        plt.show()
+
+def main(params):
+
+        # run simulation
+        t = np.arange(0, params['t_max'],params['t_step'])
+
+        # dynamics_experiment(t, params)
+
+        # voltage_values = np.linspace(-120e-3,40e-3,30)
+        # pip2_values = np.logspace(-3, 5, 30, base=10.0)
+        # kcnq_v_pip2_experiment(t,params,voltage_values,pip2_values)
+        
+        oxom_values = np.logspace(-3,2,30,base=10.0)
+        oxom_concentration_experiment(t,params,oxom_values)
+
 
 main(params)
