@@ -14,12 +14,12 @@ from mpl_toolkits.mplot3d import Axes3D
 params = {
 
         'V_0' : -70e-3, # initial conditions
-        't_max' : 3e2, 
+        't_max' : 5e1, 
         't_step' : 1e-2,
         'clamped_state' : 9000, #9000=none, 0=voltage, 3=pip2
         'I_ext'  : 7.0e-10,   # injected current
-        'I_start' : 100,
-        'I_end' : 105,
+        'I_start' : 20,
+        'I_end' : 25,
 
         'oxoM_EX_0' : 1e1,      # initial state
         'PIP2_M_0' : 1e2,    
@@ -87,21 +87,21 @@ params = {
 
         'Kr_PLCassoc' : 0.0,         #intracellular kinetic paramters
         'Kf_NE_RLG' : 0.65,  
-        'Kr_PI4K_4Pase' : 0.006, #0.006, # sensitivity
-        'K_plc' : 0.1e1, #0.1, # sensitivity  
+        'Kr_PI4K_4Pase' : 0.006,
+        'K_plc' : 0.1e2, #0.1, 
         'Kf_GTPase_Ga' : 0.026, 
         'KrG2' : 0.68,  
         'Kf_reconstitution' : 1.0,   
         'Kf_PLCdiss' : 0.71,  
-        'Kf_PI4K_4Pase' : 2.6e-4, #2.6E-4, # sensitivity
-        'KfG2' : 0.0026666,    # sensitivity 
-        'Kf_NE_G' : 1.5E-5, # sensitivity
-        'PLC_basal' : 0.0025e-1, # sensitivity
+        'Kf_PI4K_4Pase' : 2.6e-4, 
+        'KfG2' : 0.0026666,
+        'Kf_NE_G' : 1.5E-5,
+        'PLC_basal' : 0.0025e-1, #0.0025,
         'Kf_NE_RG' : 1.5E-5,
         'speed_PIP2_KCNQ' : 0.05, 
         'KD_PH_PIP2' : 2.0,   
         'K_IP3ase' : 0.08,  
-        'PLC_efficiency_PIP' : 0.14e2,  # sensitivity
+        'PLC_efficiency_PIP' : 0.14e2,  #0.14
         'KD_PH_IP3' : 0.1,    
         'Kr_NE_G' : 0.0,   
         'Kf_PLCassoc' : 1.0,   
@@ -115,8 +115,8 @@ params = {
         'KL1' : 2.0,    
         'KrL1' : 5.555555555555555,      
         'speed_PH_IP3' : 10.0,
-        'Kf_PIP5K' : 0.02, #0.02, # sensitivity
-        'Kr_PIP5K' : 0.014, #0.014, # sensitivity
+        'Kf_PIP5K' : 0.02, 
+        'Kr_PIP5K' : 0.014,
         'VSP_max' : 11.3,
         'qKT' : -40.5898,
         'VSP_V' : -0.06,
@@ -463,7 +463,7 @@ def main(params):
 
         # plot the results
         a = int((params['I_start']-1) / params['t_step'])
-        b = int((params['I_end']+1) / params['t_step']) # int(params['t_max']/params['t_step'])
+        b = int((params['I_end']+1) / params['t_step']) #int(params['t_max']/params['t_step']) #
         fig=plt.figure(figsize=(8,12))
         plt.subplot(4,1,1)
         plt.plot(t[a:b], state[:,0][a:b])
