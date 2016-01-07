@@ -14,12 +14,12 @@ from mpl_toolkits.mplot3d import Axes3D
 params = {
 
         'V_0' : -70e-3, # initial conditions
-        't_max' : 2e1, 
-        't_step' : 1e-2,
-        'clamped_state' : False, #False=none, 0=voltage, 3=pip2
-        'I_ext'  : 0.0e-10,   # injected current
-        'I_start' : 01,
-        'I_end' : 20,
+        't_max' : 20e-3, 
+        't_step' : 1e-6,
+        'clamped_state' : 'False', #'False'=none, 0=voltage, 3=pip2
+        'I_ext'  : 2.1e-9,   # injected current
+        'I_start' : 10e-3,
+        'I_end' : 10e-3+5e-4,
 
         'oxoM_EX_0' : 0e1,      # initial state
         'PIP2_M_0' : 1e2,    
@@ -42,9 +42,9 @@ params = {
         'G_beta_M_0' : 0.0,    
         'PLC_M_0' : 10.0,
         'IP3_C_0' : 0.16,
-        'm_0' : 0,#0.058,
-        'h_0' : 1,#0.57,
-        'n_0' : 0,#0.33,  
+        'm_0' : 0.058,
+        'h_0' : 0.57,
+        'n_0' : 0.33,  
 
         'leak_E' : -7.0e-2,     # channel paramters
         'leak_G' : 3.0e-09,
@@ -53,7 +53,7 @@ params = {
         'k_E'           : -9.0e-2,
         'k_G'           : 2.0e-7, #2.0/3.5*1e-8
         'KCNQ_E' : -9.0e-2,
-        'KCNQ_G': 2.0e-8,       #compare to k_G
+        'KCNQ_G': 0, #2.0e-8,       #compare to k_G
         'k_Na_act'      : 3.0e+0,
         'A_alpha_m' : 2.0e+5,
         'B_alpha_m' : -4.0e-2,
@@ -403,22 +403,25 @@ def dynamics_experiment(t,params):
         state = odeint(neuron, state0, t, args=(params,))
 
         # plot the results
-        a = int((params['I_start']-1) / params['t_step'])
-        b = int((params['I_end']+1) / params['t_step']) #int(params['t_max']/params['t_step']) #
+        # a = int((params['I_start']-1) / params['t_step'])
+        # b = int((params['I_end']+1) / params['t_step']) #int(params['t_max']/params['t_step']) #
 
         fig=plt.figure(figsize=(8,12))
-        ax=fig.add_subplot(411)
-        ax.plot(t[a:b], state[:,0][a:b])
-        ax.set_xlabel('time')
-        ax.set_ylabel('membrane potential V (mV)')
-        ax=fig.add_subplot(412)
-        ax.plot(t[a:b], state[:,3][a:b])
-        ax.set_xlabel('time')
-        ax.set_ylabel('PIP2_M')
-        ax=fig.add_subplot(413)
-        ax.plot(t[a:b], state[:,2][a:b])
-        ax.set_xlabel('time')
-        ax.set_ylabel('KCNQ_PIP2_m')
+        ax=fig.add_subplot(211)
+        ax.plot(t, state[:,0])
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Membrane Potential V (mV)')
+        ax=fig.add_subplot(212)
+        m, = ax.plot(t, state[:,22], label="Na+ activaiton (m)")
+        h, = ax.plot(t, state[:,23], label="Na+ inactivaiton (h)")
+        n, = ax.plot(t, state[:,24], label="K+ activaiton (n)")
+        ax.legend(handles = [m,h,n], loc=2)
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Voltage-gated Domain Activation')
+        # ax=fig.add_subplot(212)
+        # ax.plot(t, state[:,3])
+        # ax.set_xlabel('Time')
+        # ax.set_ylabel('PIP2')
 
         #recalculation of KCNQ_open
         KCNQ_open_recalc=[]
@@ -436,10 +439,10 @@ def dynamics_experiment(t,params):
                 PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
                 PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
                 KCNQ_open_recalc.append(PP0/PP0_max)
-        ax=fig.add_subplot(414)
-        ax.plot(t[a:b], KCNQ_open_recalc[a:b])
-        ax.set_xlabel('time')
-        ax.set_ylabel('KCNQ channel activation')
+        # ax=fig.add_subplot(212)
+        # ax.plot(t, KCNQ_open_recalc)
+        # ax.set_xlabel('time')
+        # ax.set_ylabel('KCNQ channel activation')
 
         plt.show()
 
@@ -511,14 +514,14 @@ def main(params):
         # run simulation
         t = np.arange(0, params['t_max'],params['t_step'])
 
-        # dynamics_experiment(t, params)
+        dynamics_experiment(t, params)
 
         # voltage_values = np.linspace(-120e-3,40e-3,30)
         # pip2_values = np.logspace(-3, 5, 30, base=10.0)
         # kcnq_v_pip2_experiment(t,params,voltage_values,pip2_values)
         
-        oxom_values = np.logspace(-3,2,30,base=10.0)
-        oxom_concentration_experiment(t,params,oxom_values)
+        # oxom_values = np.logspace(-3,2,30,base=10.0)
+        # oxom_concentration_experiment(t,params,oxom_values)
 
 
 main(params)
