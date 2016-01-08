@@ -14,17 +14,18 @@ from mpl_toolkits.mplot3d import Axes3D
 params = {
 
         'V_0' : -70e-3, # initial conditions
-        't_max' : 20e-3, 
-        't_step' : 1e-6,
+        't_max' : 3e1, 
+        't_step' : 1e-4,
+        'I_ext'  : 3.15e-9,   # injected current
+        'I_start' : 2e1,
+        'I_end' : 2e1+5e-4,
         'clamped_state' : 'False', #'False'=none, 0=voltage, 3=pip2
-        'I_ext'  : 2.1e-9,   # injected current
-        'I_start' : 10e-3,
-        'I_end' : 10e-3+5e-4,
 
-        'oxoM_EX_0' : 0e1,      # initial state
+
+        'oxoM_EX_0' : 1e1,      # initial state
         'PIP2_M_0' : 1e2,    
-        'KCNQ_M_0' : 4.0,     
         'KCNQ_PIP2_M_0' : 0.0,   
+        'KCNQ_M_0' : 4.0,     
         'RLG_GDP_M_0' : 0.0,   
         'RG_GDP_M_0' : 0.0,   
         'DAG_M_0' : 1e2, #2.0e3,
@@ -53,7 +54,7 @@ params = {
         'k_E'           : -9.0e-2,
         'k_G'           : 2.0e-7, #2.0/3.5*1e-8
         'KCNQ_E' : -9.0e-2,
-        'KCNQ_G': 0, #2.0e-8,       #compare to k_G
+        'KCNQ_G': 2.0e-8,       #compare to k_G
         'k_Na_act'      : 3.0e+0,
         'A_alpha_m' : 2.0e+5,
         'B_alpha_m' : -4.0e-2,
@@ -360,7 +361,7 @@ def neuron(state, t, params):
         if params['clamped_state'] == 0 or params['clamped_state'] == 3:
                 state_new.insert(params['clamped_state'],0) 
                 state_new.pop(params['clamped_state'] + 1)
-
+        # print t
         return state_new
 
 def get_state0(params):
@@ -400,28 +401,33 @@ def dynamics_experiment(t,params):
         state0 = get_state0(params)
 
         #run the simulation
-        state = odeint(neuron, state0, t, args=(params,))
+        # a and b are critical integration points
+        a = t[params['I_start']/params['t_step']]
+        b = t[params['I_end']/params['t_step']]
+        state = odeint(neuron, state0, t, args=(params,), tcrit = [a,b])
 
         # plot the results
-        # a = int((params['I_start']-1) / params['t_step'])
-        # b = int((params['I_end']+1) / params['t_step']) #int(params['t_max']/params['t_step']) #
+        a = params['I_start']-1e-2
+        b = params['I_end']+1e-2
 
         fig=plt.figure(figsize=(8,12))
-        ax=fig.add_subplot(211)
+        ax=fig.add_subplot(311)
         ax.plot(t, state[:,0])
+        ax.set_xlim([a,b])
+        ax.ticklabel_format(useOffset=False)
         ax.set_xlabel('Time')
         ax.set_ylabel('Membrane Potential V (mV)')
-        ax=fig.add_subplot(212)
-        m, = ax.plot(t, state[:,22], label="Na+ activaiton (m)")
-        h, = ax.plot(t, state[:,23], label="Na+ inactivaiton (h)")
-        n, = ax.plot(t, state[:,24], label="K+ activaiton (n)")
-        ax.legend(handles = [m,h,n], loc=2)
+
+        ax=fig.add_subplot(312)
+        # m, = ax.plot(t, state[:,22], label="Na+ activaiton (m)")
+        # h, = ax.plot(t, state[:,23], label="Na+ inactivaiton (h)")
+        # n, = ax.plot(t, state[:,24], label="K+ activaiton (n)")
+
+        ax.plot(t, state[:,3])
+        ax.set_xlim([a,b])
+        ax.ticklabel_format(useOffset=False)
         ax.set_xlabel('Time')
-        ax.set_ylabel('Voltage-gated Domain Activation')
-        # ax=fig.add_subplot(212)
-        # ax.plot(t, state[:,3])
-        # ax.set_xlabel('Time')
-        # ax.set_ylabel('PIP2')
+        ax.set_ylabel('PIP2')
 
         #recalculation of KCNQ_open
         KCNQ_open_recalc=[]
@@ -439,10 +445,14 @@ def dynamics_experiment(t,params):
                 PP0=(kg+kv*kg+kp*kg+theta*kv*kp*kg)/(1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg)
                 PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
                 KCNQ_open_recalc.append(PP0/PP0_max)
-        # ax=fig.add_subplot(212)
-        # ax.plot(t, KCNQ_open_recalc)
-        # ax.set_xlabel('time')
-        # ax.set_ylabel('KCNQ channel activation')
+
+        ax=fig.add_subplot(313)
+        kcnq, = ax.plot(t, KCNQ_open_recalc, label="KCNQ activaiton")
+        # ax.legend(handles = [m,h,n,kcnq], loc=2)
+        ax.set_xlim([a,b])
+        ax.ticklabel_format(useOffset=False)
+        ax.set_xlabel('Time')
+        ax.set_ylabel('KCNQ Conductance (g/g_max)')
 
         plt.show()
 
@@ -506,7 +516,7 @@ def oxom_concentration_experiment(t,params,oxom_list):
         ax=fig.add_subplot(111)
         ax.plot(np.log10(oxom_list),KCNQ_open_list)
         ax.set_xlabel('log_10 Oxo_M')
-        ax.set_ylabel('KCNQ channel open')
+        ax.set_ylabel('KCNQ Conductance (g/g_max)')
         plt.show()
 
 def main(params):
