@@ -13,16 +13,16 @@ from mpl_toolkits.mplot3d import Axes3D
 # set up a dictionary of parameters
 params = {
 
-        'V_0' : -70e-3, # initial conditions
-        't_max' : 3e1, 
+        'V_0' : -70e-3, # membrane potential, 1e-3 = 1 milliVolt
+        't_max' : 2e1, # time, 1e-3 = 1 millisecond
         't_step' : 1e-4,
-        'I_ext'  : 3.15e-9,   # injected current
-        'I_start' : 2e1,
-        'I_end' : 2e1+5e-4,
+        'I_ext'  : 0e-9,   # injected current, 1e-9 = 1 microAmp
+        'I_start' : 1e-2,
+        'I_end' : 1e-2+5e-4,
         'clamped_state' : 'False', #'False'=none, 0=voltage, 3=pip2
 
 
-        'oxoM_EX_0' : 1e1,      # initial state
+        'oxoM_EX_0' : 0e1,      # initial state
         'PIP2_M_0' : 1e2,    
         'KCNQ_PIP2_M_0' : 0.0,   
         'KCNQ_M_0' : 4.0,     
@@ -419,15 +419,15 @@ def dynamics_experiment(t,params):
         ax.set_ylabel('Membrane Potential V (mV)')
 
         ax=fig.add_subplot(312)
-        # m, = ax.plot(t, state[:,22], label="Na+ activaiton (m)")
-        # h, = ax.plot(t, state[:,23], label="Na+ inactivaiton (h)")
-        # n, = ax.plot(t, state[:,24], label="K+ activaiton (n)")
+        m, = ax.plot(t, state[:,22], label="Na+ activaiton (m)")
+        h, = ax.plot(t, state[:,23], label="Na+ inactivaiton (h)")
+        n, = ax.plot(t, state[:,24], label="K+ activaiton (n)")
 
-        ax.plot(t, state[:,3])
-        ax.set_xlim([a,b])
-        ax.ticklabel_format(useOffset=False)
-        ax.set_xlabel('Time')
-        ax.set_ylabel('PIP2')
+        # ax.plot(t, state[:,3])
+        # ax.set_xlim([a,b])
+        # ax.ticklabel_format(useOffset=False)
+        # ax.set_xlabel('Time')
+        # ax.set_ylabel('PIP2')
 
         #recalculation of KCNQ_open
         KCNQ_open_recalc=[]
@@ -446,13 +446,14 @@ def dynamics_experiment(t,params):
                 PP0_max=(kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg)
                 KCNQ_open_recalc.append(PP0/PP0_max)
 
-        ax=fig.add_subplot(313)
+        # ax=fig.add_subplot(313)
         kcnq, = ax.plot(t, KCNQ_open_recalc, label="KCNQ activaiton")
-        # ax.legend(handles = [m,h,n,kcnq], loc=2)
+        ax.legend(handles = [m,h,n,kcnq], loc=2)
         ax.set_xlim([a,b])
         ax.ticklabel_format(useOffset=False)
         ax.set_xlabel('Time')
-        ax.set_ylabel('KCNQ Conductance (g/g_max)')
+        ax.set_ylabel('Volgate gated Domain Activation')
+        # ax.set_ylabel('KCNQ Conductance (g/g_max)')
 
         plt.show()
 
@@ -512,7 +513,7 @@ def oxom_concentration_experiment(t,params,oxom_list):
                         (1+kg+kp+kv+kv*kg+kp*kg+kv*kp+theta*kv*kp*kg))
                         / ((kg+theta*kp*kg)/(1+kg+kp+theta*kp*kg))))
 
-        fig=plt.figure(figsize=(8,12))
+        fig=plt.figure(figsize=(8,4))
         ax=fig.add_subplot(111)
         ax.plot(np.log10(oxom_list),KCNQ_open_list)
         ax.set_xlabel('log_10 Oxo_M')
@@ -524,14 +525,14 @@ def main(params):
         # run simulation
         t = np.arange(0, params['t_max'],params['t_step'])
 
-        dynamics_experiment(t, params)
+        # dynamics_experiment(t, params)
 
         # voltage_values = np.linspace(-120e-3,40e-3,30)
         # pip2_values = np.logspace(-3, 5, 30, base=10.0)
         # kcnq_v_pip2_experiment(t,params,voltage_values,pip2_values)
         
-        # oxom_values = np.logspace(-3,2,30,base=10.0)
-        # oxom_concentration_experiment(t,params,oxom_values)
+        oxom_values = np.logspace(-3,2,30,base=10.0)
+        oxom_concentration_experiment(t,params,oxom_values)
 
 
 main(params)
